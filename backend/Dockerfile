@@ -1,38 +1,38 @@
-# Dockerfile for Node.js Backend Application
+# Use lightweight Node.js image
 FROM node:22-alpine
 
-# Create app directory and set correct permissions
+# Create application directory
 WORKDIR /app
 
-# Create non-root user first
-RUN addgroup -g 1001 -S appgroup && \
-    adduser -S appuser -u 1001 -G appgroup
+# Create non-root user
+RUN addgroup -S appgroup && \
+    adduser -S appuser -G appgroup
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install production dependencies
+RUN npm install --omit=dev && npm cache clean --force
 
 # Copy application source code
 COPY src ./src
 
-# Change ownership of the app directory to the non-root user
+# Change ownership
 RUN chown -R appuser:appgroup /app
 
 # Switch to non-root user
 USER appuser
 
-# Set environment variables
+# Environment variables
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Expose port
+# Expose application port
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "const http=require('http');const req=http.request({hostname:'localhost',port:3000,path:'/health'},res=>{process.exit(res.statusCode===200?0:1)});req.on('error',()=>process.exit(1));req.end();"
+# Container health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
-# Start the application
+# Start application
 CMD ["node", "src/server.js"]
