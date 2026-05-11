@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Employee Management System</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="container">
+      <!-- Login Section -->
+      <div id="login-section" class="section">
+        <h1>Employee Management System</h1>
+        <div class="login-form">
+          <h2>Login</h2>
+          <form id="login-form">
+            <div class="form-group">
+              <label for="email">Email:</label>
+              <input type="email" id="email" required>
+            </div>
+            <div class="form-group">
+              <label for="password">Password:</label>
+              <input type="password" id="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Login</button>
+          </form>
+          <div id="login-error" class="error-message"></div>
+          <div class="login-info">
+            <p><strong>Admin:</strong> admin@company.com / admin123</p>
+            <p><strong>Employee:</strong> Use email from added employees / password123</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main App Section -->
+      <div id="app-section" class="section hidden">
+        <header class="header">
+          <h1>Employee Management System</h1>
+          <div class="user-info">
+            <span id="user-email"></span>
+            <button id="logout-btn" class="btn btn-secondary">Logout</button>
+          </div>
+        </header>
+
+        <nav class="nav">
+          <button id="employees-tab" class="nav-btn active">Employees</button>
+          <button id="add-employee-tab" class="nav-btn">Add Employee</button>
+          <button id="departments-tab" class="nav-btn">Departments</button>
+          <button id="dashboard-tab" class="nav-btn">Dashboard</button>
+        </nav>
+
+        <!-- Employees List -->
+        <div id="employees-section" class="content-section">
+          <h2>All Employees</h2>
+          <div id="employees-list" class="employees-grid"></div>
+        </div>
+
+        <!-- Add Employee Form -->
+        <div id="add-employee-section" class="content-section hidden">
+          <h2>Add New Employee</h2>
+          <form id="add-employee-form" class="form">
+            <div class="form-group">
+              <label for="emp-name">Name:</label>
+              <input type="text" id="emp-name" required>
+            </div>
+            <div class="form-group">
+              <label for="emp-email">Email:</label>
+              <input type="email" id="emp-email" required>
+            </div>
+            <div class="form-group">
+              <label for="emp-department">Department:</label>
+              <select id="emp-department" required>
+                <option value="">Select Department</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="emp-position">Position:</label>
+              <input type="text" id="emp-position">
+            </div>
+            <div class="form-group">
+              <label for="emp-salary">Salary:</label>
+              <input type="number" id="emp-salary" step="0.01">
+            </div>
+            <button type="submit" class="btn btn-primary">Add Employee</button>
+          </form>
+          <div id="add-employee-error" class="error-message"></div>
+        </div>
+
+        <!-- Departments -->
+        <div id="departments-section" class="content-section hidden">
+          <h2>Departments</h2>
+          <div id="departments-list" class="departments-grid"></div>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="dashboard-section" class="content-section hidden">
+          <h2>Department Dashboard</h2>
+          <div class="form-group">
+            <label for="dashboard-dept">Select Department:</label>
+            <select id="dashboard-dept">
+              <option value="">Select Department</option>
+            </select>
+          </div>
+          <div id="dashboard-content"></div>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
