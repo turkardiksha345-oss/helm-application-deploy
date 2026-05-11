@@ -49,29 +49,19 @@ jobs:
         id: image
         run: |
           IMAGE_TAG=${GITHUB_SHA::7}
-          echo "image-tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "image-tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
       - name: Build Backend Image
-        run: |
-          docker build \
-            -t $DOCKER_USERNAME/banking-backend:${{ steps.image.outputs.image-tag }} \
-            ./backend
+        run: docker build -t $DOCKER_USERNAME/banking-backend:${{ steps.image.outputs.image-tag }} ./backend
 
       - name: Build Frontend Image
-        run: |
-          docker build \
-            -t $DOCKER_USERNAME/banking-frontend:${{ steps.image.outputs.image-tag }} \
-            ./frontend
+        run: docker build -t $DOCKER_USERNAME/banking-frontend:${{ steps.image.outputs.image-tag }} ./frontend
 
       - name: Push Backend Image
-        run: |
-          docker push \
-            $DOCKER_USERNAME/banking-backend:${{ steps.image.outputs.image-tag }}
+        run: docker push $DOCKER_USERNAME/banking-backend:${{ steps.image.outputs.image-tag }}
 
       - name: Push Frontend Image
-        run: |
-          docker push \
-            $DOCKER_USERNAME/banking-frontend:${{ steps.image.outputs.image-tag }}
+        run: docker push $DOCKER_USERNAME/banking-frontend:${{ steps.image.outputs.image-tag }}
 
   deploy:
     name: Deploy Helm Chart To EKS
@@ -101,26 +91,22 @@ jobs:
         uses: azure/setup-helm@v4
 
       - name: Update kubeconfig
-        run: |
-          aws eks update-kubeconfig \
-            --region "$AWS_REGION" \
-            --name "$EKS_CLUSTER_NAME"
+        run: aws eks update-kubeconfig --region "$AWS_REGION" --name "$EKS_CLUSTER_NAME"
 
       - name: Verify Cluster Access
-        run: |
-          kubectl get nodes
+        run: kubectl get nodes
 
       - name: Deploy Application Using Helm
         run: |
           helm upgrade --install "$HELM_RELEASE_NAME" ./helm/two-tier-app \
-            --namespace "$HELM_NAMESPACE" \
-            --create-namespace \
-            --wait \
-            --timeout 5m \
-            --set backend.image.repository="$DOCKER_USERNAME/banking-backend" \
-            --set backend.image.tag="${{ needs.build-and-push.outputs.image-tag }}" \
-            --set frontend.image.repository="$DOCKER_USERNAME/banking-frontend" \
-            --set frontend.image.tag="${{ needs.build-and-push.outputs.image-tag }}"
+          --namespace "$HELM_NAMESPACE" \
+          --create-namespace \
+          --wait \
+          --timeout 5m \
+          --set backend.image.repository="$DOCKER_USERNAME/banking-backend" \
+          --set backend.image.tag="${{ needs.build-and-push.outputs.image-tag }}" \
+          --set frontend.image.repository="$DOCKER_USERNAME/banking-frontend" \
+          --set frontend.image.tag="${{ needs.build-and-push.outputs.image-tag }}"
 
       - name: Verify Deployment
         run: |
