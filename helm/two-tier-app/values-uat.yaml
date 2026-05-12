@@ -3,14 +3,17 @@ fullnameOverride: ""
 
 frontend:
   replicaCount: 2
+
   image:
     repository: your-dockerhub-username/employee-management-frontend
     pullPolicy: IfNotPresent
     tag: "latest"
+
   service:
     type: NodePort
     port: 80
-    nodePort: 30080
+    nodePort: 30081
+
   resources:
     requests:
       cpu: 50m
@@ -18,23 +21,28 @@ frontend:
     limits:
       cpu: 250m
       memory: 128Mi
+
   autoscaling:
     enabled: false
     minReplicas: 2
-    maxReplicas: 5
+    maxReplicas: 4
     targetCPUUtilizationPercentage: 70
 
 backend:
   replicaCount: 2
+
   image:
     repository: your-dockerhub-username/employee-management-backend
     pullPolicy: IfNotPresent
     tag: "latest"
+
   service:
     type: ClusterIP
     port: 3000
+
   env:
-    APP_NAME: "Two Tier API"
+    APP_NAME: "Two Tier API - UAT"
+
   resources:
     requests:
       cpu: 50m
@@ -42,10 +50,11 @@ backend:
     limits:
       cpu: 300m
       memory: 256Mi
+
   autoscaling:
     enabled: false
     minReplicas: 2
-    maxReplicas: 5
+    maxReplicas: 4
     targetCPUUtilizationPercentage: 70
 
 imagePullSecrets: []
@@ -56,22 +65,29 @@ serviceAccount:
   name: ""
 
 podAnnotations: {}
+
 podSecurityContext: {}
+
 securityContext: {}
 
 ingress:
   enabled: false
   className: alb
+
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
+
   hosts:
-    - host: two-tier.example.com
+    - host: uat.two-tier.example.com
       paths:
         - path: /
           pathType: Prefix
+
   tls: []
 
 nodeSelector: {}
+
 tolerations: []
+
 affinity: {}

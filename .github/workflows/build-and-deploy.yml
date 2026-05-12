@@ -19,9 +19,6 @@ env:
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
   DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
-  HELM_RELEASE_NAME: two-tier-app
-  HELM_NAMESPACE: two-tier
-
 jobs:
 
   build-and-push:
@@ -52,19 +49,29 @@ jobs:
           echo "image-tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
       - name: Build Backend Image
-        run: docker build -t $DOCKER_USERNAME/banking-backend:${{ steps.image.outputs.image-tag }} ./backend
+        run: |
+          docker build \
+          -t $DOCKER_USERNAME/employee-management-backend:${{ steps.image.outputs.image-tag }} \
+          ./backend
 
       - name: Build Frontend Image
-        run: docker build -t $DOCKER_USERNAME/banking-frontend:${{ steps.image.outputs.image-tag }} ./frontend
+        run: |
+          docker build \
+          -t $DOCKER_USERNAME/employee-management-frontend:${{ steps.image.outputs.image-tag }} \
+          ./frontend
 
       - name: Push Backend Image
-        run: docker push $DOCKER_USERNAME/banking-backend:${{ steps.image.outputs.image-tag }}
+        run: |
+          docker push \
+          $DOCKER_USERNAME/employee-management-backend:${{ steps.image.outputs.image-tag }}
 
       - name: Push Frontend Image
-        run: docker push $DOCKER_USERNAME/banking-frontend:${{ steps.image.outputs.image-tag }}
+        run: |
+          docker push \
+          $DOCKER_USERNAME/employee-management-frontend:${{ steps.image.outputs.image-tag }}
 
-  deploy:
-    name: Deploy Helm Chart To EKS
+  deploy-dev:
+    name: Deploy To DEV
     runs-on: ubuntu-latest
 
     needs: build-and-push
@@ -91,25 +98,118 @@ jobs:
         uses: azure/setup-helm@v4
 
       - name: Update kubeconfig
-        run: aws eks update-kubeconfig --region "$AWS_REGION" --name "$EKS_CLUSTER_NAME"
-
-      - name: Verify Cluster Access
-        run: kubectl get nodes
-
-      - name: Deploy Application Using Helm
         run: |
-          helm upgrade --install "$HELM_RELEASE_NAME" ./helm/two-tier-app \
-          --namespace "$HELM_NAMESPACE" \
+          aws eks update-kubeconfig \
+          --region "$AWS_REGION" \
+          --name "$EKS_CLUSTER_NAME"
+
+      - name: Deploy To DEV Namespace
+        run: |
+          helm upgrade --install two-tier-app-dev ./helm/two-tier-app \
+          --namespace dev \
           --create-namespace \
+          -f ./helm/two-tier-app/values-dev.yaml \
           --wait \
           --timeout 5m \
-          --set backend.image.repository="$DOCKER_USERNAME/banking-backend" \
+          --set backend.image.repository="$DOCKER_USERNAME/employee-management-backend" \
           --set backend.image.tag="${{ needs.build-and-push.outputs.image-tag }}" \
-          --set frontend.image.repository="$DOCKER_USERNAME/banking-frontend" \
+          --set frontend.image.repository="$DOCKER_USERNAME/employee-management-frontend" \
           --set frontend.image.tag="${{ needs.build-and-push.outputs.image-tag }}"
 
-      - name: Verify Deployment
+  deploy-uat:
+    name: Deploy To UAT
+    runs-on: ubuntu-latest
+
+    needs: build-and-push
+
+    permissions:
+      contents: read
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Update kubeconfig
         run: |
-          kubectl get pods -n "$HELM_NAMESPACE"
-          kubectl get svc -n "$HELM_NAMESPACE"
-          kubectl get deployments -n "$HELM_NAMESPACE"
+          aws eks update-kubeconfig \
+          --region "$AWS_REGION" \
+          --name "$EKS_CLUSTER_NAME"
+
+      - name: Deploy To UAT Namespace
+        run: |
+          helm upgrade --install two-tier-app-uat ./helm/two-tier-app \
+          --namespace uat \
+          --create-namespace \
+          -f ./helm/two-tier-app/values-uat.yaml \
+          --wait \
+          --timeout 5m \
+          --set backend.image.repository="$DOCKER_USERNAME/employee-management-backend" \
+          --set backend.image.tag="${{ needs.build-and-push.outputs.image-tag }}" \
+          --set frontend.image.repository="$DOCKER_USERNAME/employee-management-frontend" \
+          --set frontend.image.tag="${{ needs.build-and-push.outputs.image-tag }}"
+
+  deploy-prod:
+    name: Deploy To PROD
+    runs-on: ubuntu-latest
+
+    needs: build-and-push
+
+    permissions:
+      contents: read
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+          --region "$AWS_REGION" \
+          --name "$EKS_CLUSTER_NAME"
+
+      - name: Deploy To PROD Namespace
+        run: |
+          helm upgrade --install two-tier-app-prod ./helm/two-tier-app \
+          --namespace prod \
+          --create-namespace \
+          -f ./helm/two-tier-app/values-prod.yaml \
+          --wait \
+          --timeout 5m \
+          --set backend.image.repository="$DOCKER_USERNAME/employee-management-backend" \
+          --set backend.image.tag="${{ needs.build-and-push.outputs.image-tag }}" \
+          --set frontend.image.repository="$DOCKER_USERNAME/employee-management-frontend" \
+          --set frontend.image.tag="${{ needs.build-and-push.outputs.image-tag }}"
+
+      - name: Verify Deployments
+        run: |
+          kubectl get pods -A
+          kubectl get svc -A
+          kubectl get deployments -A

@@ -2,35 +2,50 @@ name: Validate Helm Chart
 
 on:
   pull_request:
+    branches:
+      - main
     paths:
-      - "Application-deploy-through-helm/backend/**"
-      - "Application-deploy-through-helm/frontend/**"
-      - "Application-deploy-through-helm/helm/two-tier-app/**"
+      - "helm/two-tier-app/**"
       - ".github/workflows/helm-validate.yml"
+
   workflow_dispatch:
 
 jobs:
+
   helm-validate:
-    name: Helm lint and template
+    name: Helm Lint and Template Validation
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: Application-deploy-through-helm
+    permissions:
+      contents: read
 
     steps:
-      - name: Checkout repository
+
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Helm
+      - name: Install Helm
         uses: azure/setup-helm@v4
 
-      - name: Lint chart
-        run: helm lint helm/two-tier-app
+      - name: Helm Lint
+        run: |
+          helm lint ./helm/two-tier-app
 
-      - name: Render chart
-        run: helm template two-tier-app helm/two-tier-app
+      - name: Helm Template Render Validation
+        run: |
+          helm template two-tier-app ./helm/two-tier-app > rendered-output.yaml
 
-      - name: Render chart with ingress enabled
-        run: helm template two-tier-app helm/two-tier-app --set ingress.enabled=true
+      - name: Validate DEV Values
+        run: |
+          helm template two-tier-app ./helm/two-tier-app \
+          -f ./helm/two-tier-app/values-dev.yaml > dev-rendered.yaml
 
+      - name: Validate UAT Values
+        run: |
+          helm template two-tier-app ./helm/two-tier-app \
+          -f ./helm/two-tier-app/values-uat.yaml > uat-rendered.yaml
+
+      - name: Validate PROD Values
+        run: |
+          helm template two-tier-app ./helm/two-tier-app \
+          -f ./helm/two-tier-app/values-prod.yaml > prod-rendered.yaml
